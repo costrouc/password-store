@@ -14,6 +14,9 @@
       in pkgs.mkShell {
         buildInputs = [
           pkgs.rofi
+          pkgs.xdotool
+          pkgs.python311
+          pythonPackages.ruamel-yaml
         ];
       };
   };
