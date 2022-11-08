@@ -15,7 +15,41 @@ import webbrowser
 import ruamel.yaml
 
 
-PASS_DIRECTORY = pathlib.Path('~/.password-store').expanduser()
+class PasswordStore:
+    PASS_DIRECTORY = pathlib.Path('~/.password-store').expanduser()
+
+    @staticmethod
+    def list_files():
+        files = []
+
+        for path in PasswordStore.PASS_DIRECTORY.glob('**/*.gpg'):
+            files.append(str(path.relative_to(PasswordStore.PASS_DIRECTORY))[:-4])
+
+        return sorted(files)
+
+    @staticmethod
+    def parse_file(path: pathlib.Path):
+        contents = GPG().decrypt(path).decode('utf-8')
+
+        match = re.fullmatch(r"""
+           ^
+           (?P<password>[^\n]*)\n
+           (?:(?P<otp>[^-\n][^\n]*)\n)?
+           (?:---+\n([\w\W]*))?
+           $
+        """, contents, flags=re.X)
+
+        password, otp, data = match.groups()
+        if data is not None:
+            try:
+                data = ruamel.yaml.YAML(typ='safe').load(data)
+            except ruamel.yaml.YAMLError:
+                data = {}
+        else:
+            data = {}
+
+        return password, otp, flatten(data)
+
 
 
 class Command:
@@ -64,38 +98,6 @@ class Xdotool(Command):
         ], stdin=text.encode('utf-8'))
 
 
-def list_password_files():
-    files = []
-
-    for path in PASS_DIRECTORY.glob('**/*.gpg'):
-        files.append(str(path.relative_to(PASS_DIRECTORY))[:-4])
-
-    return sorted(files)
-
-
-def parse_password_file(path: pathlib.Path):
-    contents = GPG().decrypt(path).decode('utf-8')
-
-    match = re.fullmatch(r"""
-       ^
-       (?P<password>[^\n]*)\n
-       (?:(?P<otp>[^-\n][^\n]*)\n)?
-       (?:---+\n([\w\W]*))?
-       $
-    """, contents, flags=re.X)
-
-    password, otp, data = match.groups()
-    if data is not None:
-        try:
-            data = ruamel.yaml.YAML(typ='safe').load(data)
-        except ruamel.yaml.YAMLError:
-            data = {}
-    else:
-        data = {}
-
-    return password, otp, flatten(data)
-
-
 def flatten(d, parent_key='', sep='.'):
     items = {}
     for key, value in d.items():
@@ -121,13 +123,13 @@ def generate_totp(totp_uri: str):
 
 def main():
     # choose password file
-    choice = Rofi.choice(list_password_files())
+    choice = Rofi.choice(PasswordStore.list_files())
     if choice == '':
         sys.exit(1)
 
     # decrypt and read password file
-    path = pathlib.Path(str(PASS_DIRECTORY / choice) + '.gpg')
-    password, otp, data = parse_password_file(path)
+    path = pathlib.Path(str(PasswordStore.PASS_DIRECTORY / choice) + '.gpg')
+    password, otp, data = PasswordStore.parse_file(path)
 
     data['pass'] = password
     if otp is not None:
