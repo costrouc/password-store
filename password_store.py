@@ -137,6 +137,7 @@ def cli():
     parser = argparse.ArgumentParser(
         prog='password-store'
     )
+    parser.set_defaults(func=None)
     subparsers = parser.add_subparsers()
 
     parser_rofi = subparsers.add_parser('rofi', help='rofi')
@@ -148,6 +149,10 @@ def cli():
     parser_get.set_defaults(func=handle_get_command)
 
     args = parser.parse_args()
+    if args.func is None:
+        parser.print_help()
+        sys.exit(1)
+
     args.func(args)
 
 
