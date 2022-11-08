@@ -50,8 +50,11 @@ class PasswordStore:
         else:
             data = {}
 
-        return password, otp, flatten(data)
+        data['pass'] = password
+        if otp is not None:
+            data['otp'] = otp
 
+        return flatten(data)
 
 
 class Command:
@@ -111,6 +114,13 @@ def flatten(d, parent_key='', sep='.'):
     return items
 
 
+def get_nested_attr(d, attr, sep='.'):
+    _ = d
+    for key in attr.split(sep):
+        _ = _[key]
+    return _
+
+
 def generate_totp(totp_uri: str):
     uri = urllib.parse.urlparse(totp_uri)
     secret = urllib.parse.parse_qs(uri.query)['secret'][0]
@@ -132,11 +142,24 @@ def cli():
     parser_rofi = subparsers.add_parser('rofi', help='rofi')
     parser_rofi.set_defaults(func=handle_rofi_command)
 
+    parser_get = subparsers.add_parser('get', help='get')
+    parser_get.add_argument('file', type=str)
+    parser_get.add_argument('key', type=str)
+    parser_get.set_defaults(func=handle_get_command)
+
     args = parser.parse_args()
     args.func(args)
 
 
-def handle_rofi_command():
+def handle_get_command(args):
+    # decrypt and read password file
+    path = pathlib.Path(str(PasswordStore.PASS_DIRECTORY / args.file) + '.gpg')
+    data = PasswordStore.parse_file(path)
+
+    print(get_nested_attr(data, args.key), end='')
+
+
+def handle_rofi_command(args):
     # choose password file
     choice = Rofi.choice(PasswordStore.list_files())
     if choice == '':
@@ -144,11 +167,7 @@ def handle_rofi_command():
 
     # decrypt and read password file
     path = pathlib.Path(str(PasswordStore.PASS_DIRECTORY / choice) + '.gpg')
-    password, otp, data = PasswordStore.parse_file(path)
-
-    data['pass'] = password
-    if otp is not None:
-        data['otp'] = otp
+    data = PasswordStore.parse_file(path)
 
     # choose field within password file
     choice = Rofi.choice(list(data.keys()))
@@ -163,4 +182,4 @@ def handle_rofi_command():
 
 
 if __name__ == "__main__":
-    main()
+    cli()

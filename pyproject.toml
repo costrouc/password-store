@@ -7,4 +7,4 @@ dependencies = [
 ]
 
 [project.scripts]
-password-store = "password_store:main"
+password-store = "password_store:cli"
