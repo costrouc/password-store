@@ -1,5 +1,5 @@
 {
-  description = "rofi-password-store";
+  description = "password-store";
 
   inputs = {
     nixpkgs = { url = "github:nixos/nixpkgs/nixpkgs-unstable"; };
@@ -19,7 +19,7 @@
         src = ./.;
 
         postConfigure = ''
-          substituteInPlace rofi_password_store.py \
+          substituteInPlace password_store.py \
             --replace '"rofi"' '"${pkgs.rofi}/bin/rofi"' \
             --replace '"gpg"' '"${pkgs.gnupg}/bin/gpg"' \
             --replace '"xdotool"' '"${pkgs.xdotool}/bin/xdotool"'
@@ -36,7 +36,7 @@
 
       apps.x86_64-linux.default = {
         type = "app";
-        program = "${self.packages.x86_64-linux.default}/bin/rofi-password-store";
+        program = "${self.packages.x86_64-linux.default}/bin/password-store";
       };
 
       devShell.x86_64-linux = pkgs.mkShell {

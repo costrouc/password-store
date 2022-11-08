@@ -1,4 +1,5 @@
 import sys
+import os
 import io
 import re
 import pathlib
@@ -11,12 +12,13 @@ import hmac
 import hashlib
 import urllib.parse
 import webbrowser
+import argparse
 
 import ruamel.yaml
 
 
 class PasswordStore:
-    PASS_DIRECTORY = pathlib.Path('~/.password-store').expanduser()
+    PASS_DIRECTORY = os.environ.get('PASSWORD_STORE', pathlib.Path('~/.password-store').expanduser())
 
     @staticmethod
     def list_files():
@@ -121,7 +123,20 @@ def generate_totp(totp_uri: str):
     return f'{password:06}'
 
 
-def main():
+def cli():
+    parser = argparse.ArgumentParser(
+        prog='password-store'
+    )
+    subparsers = parser.add_subparsers()
+
+    parser_rofi = subparsers.add_parser('rofi', help='rofi')
+    parser_rofi.set_defaults(func=handle_rofi_command)
+
+    args = parser.parse_args()
+    args.func(args)
+
+
+def handle_rofi_command():
     # choose password file
     choice = Rofi.choice(PasswordStore.list_files())
     if choice == '':
