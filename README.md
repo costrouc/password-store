@@ -14,4 +14,4 @@ features. The main features was support for nested yaml.
 
 ## License
 
-
+BSD 3
