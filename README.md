@@ -13,6 +13,11 @@ around a few bugs in rofi-pass.
  - xdotool
  - ruamel-yaml
 
+## Commands
+
+ - `password-store get <file> <key>` cli to get password keys
+ - `password-store rofi` rofi client
+
 ## License
 
 BSD 3
