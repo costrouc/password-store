@@ -18,11 +18,11 @@
 
         src = ./.;
 
-        preConfigurePhase = ''
-          substituteInPlace rofi-python-pass.py \
-            --replace "\"rofi\"" "${pkgs.rofi}/bin/rofi" \
-            --replace "\"gpg\"" "${pkgs.gnupg}/bin/gpg" \
-            --replace "\"xdotool\"" "${pkgs.xdotool}/bin/xdotool" \
+        postConfigure = ''
+          substituteInPlace rofi_password_store.py \
+            --replace '"rofi"' '"${pkgs.rofi}/bin/rofi"' \
+            --replace '"gpg"' '"${pkgs.gnupg}/bin/gpg"' \
+            --replace '"xdotool"' '"${pkgs.xdotool}/bin/xdotool"'
         '';
 
         buildInputs = [
@@ -32,6 +32,11 @@
         propagatedBuildInputs = [
           pythonPackages.ruamel-yaml
         ];
+      };
+
+      apps.x86_64-linux.default = {
+        type = "app";
+        program = "${self.packages.x86_64-linux.default}/bin/rofi-password-store";
       };
 
       devShell.x86_64-linux = pkgs.mkShell {

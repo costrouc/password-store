@@ -142,7 +142,7 @@ def main():
     elif choice == 'url':
         webbrowser.open_new_tab(data[choice])
     else:
-        Xdotool.type(data[choice])
+        Xdotool.type(str(data[choice]))
 
 
 if __name__ == "__main__":
