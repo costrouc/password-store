@@ -1,0 +1,7 @@
+[project]
+name = "rofi-python-pass"
+version = "0.1.0"
+description = "rofi password-store"
+dependencies = [
+  "ruamel.yaml",
+]

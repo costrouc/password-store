@@ -1,3 +1,4 @@
+import sys
 import io
 import re
 import pathlib
@@ -9,51 +10,21 @@ import base64
 import hmac
 import hashlib
 import urllib.parse
+import webbrowser
 
-from ruamel.yaml import YAML
+import ruamel.yaml
 
 
 PASS_DIRECTORY = pathlib.Path('~/.password-store').expanduser()
 
 
-class Rofi:
-    ROFI_CMD = "rofi"
+class Command:
+    DEFAULT_COMMAND = None
 
-    def run(self, args: List[str], cmd: str = ROFI_CMD, stdin: bytes = None):
-        process = subprocess.Popen(
-            [cmd, *args],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            encoding='utf-8'
-        )
-        stdout, stderr = process.communicate(stdin)
-        return stdout, stderr
-
-    def choice(self, choices: List[str] = None):
-        stdout, _ = self.run(args=['-dmenu'], stdin="\n".join(choices))
-        return stdout.strip()
-
-
-class GPG:
-    GPG_CMD = "gpg"
-
-    def run(self, args: List[str], cmd: str = GPG_CMD, stdin: bytes = None) -> bytes:
-        process = subprocess.Popen(
-            [cmd, *args],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        stdout, stderr = process.communicate(stdin)
-        return stdout, stderr
-
-    def decrypt(self, path: pathlib.Path) -> bytes:
-        stdout, _ =  self.run(args=["--decrypt", str(path)])
-        return stdout
-
-
-class Xdotool:
-    XDOTOOL_CMD = "xdotool"
-
-    def run(self, args: List[str], cmd: str = XDOTOOL_CMD, stdin: bytes = None):
+    @classmethod
+    def run(cls, args: List[str] = None, cmd: str = None, stdin: bytes = None):
+        cmd = cmd or cls.DEFAULT_COMMAND
+        args = args or []
         process = subprocess.Popen(
             [cmd, *args],
             stdin=subprocess.PIPE,
@@ -63,29 +34,62 @@ class Xdotool:
         stdout, stderr = process.communicate(stdin)
         return stdout, stderr
 
-    def type(self, text: str, delay: int = 12):
-        self.run(args=[
+
+class Rofi(Command):
+    DEFAULT_COMMAND = "rofi"
+
+    @classmethod
+    def choice(cls, choices: List[str] = None):
+        stdin = "\n".join(choices).encode('utf-8')
+        stdout, _ = cls.run(args=['-dmenu'], stdin=stdin)
+        return stdout.decode('utf-8').strip()
+
+
+class GPG(Command):
+    DEFAULT_COMMAND = "gpg"
+
+    @classmethod
+    def decrypt(cls, path: pathlib.Path) -> bytes:
+        stdout, _ =  cls.run(args=["--decrypt", str(path)])
+        return stdout
+
+
+class Xdotool(Command):
+    DEFAULT_COMMAND = "xdotool"
+
+    @classmethod
+    def type(cls, text: str, delay: int = 12):
+        cls.run(args=[
             "type", "--delay", str(delay), "--clearmodifiers", "--file", "-",
         ], stdin=text.encode('utf-8'))
 
 
 def list_password_files():
+    files = []
+
     for path in PASS_DIRECTORY.glob('**/*.gpg'):
-        yield str(path.relative_to(PASS_DIRECTORY))[:-4]
+        files.append(str(path.relative_to(PASS_DIRECTORY))[:-4])
+
+    return sorted(files)
 
 
 def parse_password_file(path: pathlib.Path):
     contents = GPG().decrypt(path).decode('utf-8')
 
-    match = re.match(r"""
+    match = re.fullmatch(r"""
+       ^
        (?P<password>[^\n]*)\n
        (?:(?P<otp>[^-\n][^\n]*)\n)?
-       (?:---+\n([\w\W]*)$)?
+       (?:---+\n([\w\W]*))?
+       $
     """, contents, flags=re.X)
 
     password, otp, data = match.groups()
     if data is not None:
-        data = YAML(typ='safe').load(data)
+        try:
+            data = ruamel.yaml.YAML(typ='safe').load(data)
+        except ruamel.yaml.YAMLError:
+            data = {}
     else:
         data = {}
 
@@ -115,8 +119,13 @@ def generate_totp(totp_uri: str):
     return f'{password:06}'
 
 
-if __name__ == "__main__":
-    choice = Rofi().choice(list(list_password_files()))
+def main():
+    # choose password file
+    choice = Rofi.choice(list_password_files())
+    if choice == '':
+        sys.exit(1)
+
+    # decrypt and read password file
     path = pathlib.Path(str(PASS_DIRECTORY / choice) + '.gpg')
     password, otp, data = parse_password_file(path)
 
@@ -124,8 +133,17 @@ if __name__ == "__main__":
     if otp is not None:
         data['otp'] = otp
 
-    choice = Rofi().choice(list(data.keys()))
-    if choice == 'otp':
-        Xdotool().type(generate_totp(data[choice]))
+    # choose field within password file
+    choice = Rofi.choice(list(data.keys()))
+    if choice == '':
+        sys.exit(1)
+    elif choice == 'otp':
+        Xdotool.type(generate_totp(data[choice]))
+    elif choice == 'url':
+        webbrowser.open_new_tab(data[choice])
     else:
-        Xdotool().type(data[choice])
+        Xdotool.type(data[choice])
+
+
+if __name__ == "__main__":
+    main()
