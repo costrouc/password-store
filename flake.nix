@@ -25,6 +25,10 @@
             --replace "\"xdotool\"" "${pkgs.xdotool}/bin/xdotool" \
         '';
 
+        buildInputs = [
+          pythonPackages.setuptools
+        ];
+
         propagatedBuildInputs = [
           pythonPackages.ruamel-yaml
         ];
