@@ -1,5 +1,5 @@
 {
-  description = "rofipy";
+  description = "rofi-password-store";
 
   inputs = {
     nixpkgs = { url = "github:nixos/nixpkgs/nixpkgs-unstable"; };
@@ -12,7 +12,7 @@
       pythonPackages = pkgs.python3Packages;
     in {
       packages.x86_64-linux.default = pythonPackages.buildPythonPackage {
-        pname = "rofi-pypass";
+        pname = "rofi-password-store";
         version = "latest";
         format = "pyproject";
 
