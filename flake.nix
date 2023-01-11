@@ -22,7 +22,10 @@
           substituteInPlace password_store.py \
             --replace '"rofi"' '"${pkgs.rofi}/bin/rofi"' \
             --replace '"gpg"' '"${pkgs.gnupg}/bin/gpg"' \
-            --replace '"xdotool"' '"${pkgs.xdotool}/bin/xdotool"'
+            --replace '"xdotool"' '"${pkgs.xdotool}/bin/xdotool"' \
+            --replace '"spectacle"' '"${pkgs.spectacle}/bin/spectacle"' \
+            --replace '"zbarimg"' '"${pkgs.zbar}/bin/zbarimg"' \
+            --replace '"xclip"' '"${pkgs.xclip}/bin/xclip"'
         '';
 
         buildInputs = [
@@ -31,6 +34,7 @@
 
         propagatedBuildInputs = [
           pythonPackages.ruamel-yaml
+          pythonPackages.pytesseract
         ];
       };
 
@@ -42,9 +46,13 @@
       devShell.x86_64-linux = pkgs.mkShell {
         buildInputs = [
           pythonPackages.ruamel-yaml
+          pythonPackages.pytesseract
           pkgs.rofi
           pkgs.gnupg
           pkgs.xdotool
+          pkgs.spectacle
+          pkgs.zbar
+          pkgs.xclip
         ];
       };
     };
