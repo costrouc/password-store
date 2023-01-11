@@ -14,6 +14,7 @@ import urllib.parse
 import webbrowser
 import argparse
 import tempfile
+import datetime
 
 import ruamel.yaml
 import pytesseract
@@ -237,6 +238,12 @@ def action_screenshot_to_clipboard_image():
     Spectacle.clipboard()
 
 
+def action_screenshot_to_clipboard_filename():
+    filename = pathlib.Path.home() / 'Pictures' / 'screenshots' / f'{datetime.datetime.now().isoformat()}.png'
+    Spectacle.capture(str(filename))
+    XClip.set(str(filename))
+
+
 def action_type_clipboard():
     text = XClip.get()
     Xdotool.type(text)
@@ -248,6 +255,7 @@ def handle_rofi_command(args):
         'action::ocr-screenshot': action_screenshot_to_clipboard_text,
         'action::type-clipboard': action_type_clipboard,
         'action::copy-screenshot': action_screenshot_to_clipboard_image,
+        'action::file-screenshot': action_screenshot_to_clipboard_filename,
     }
 
     # choose password file
